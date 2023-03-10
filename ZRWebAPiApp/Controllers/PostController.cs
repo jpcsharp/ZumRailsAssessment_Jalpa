@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Net;
 using System.Web.Http;
-using System.Xml;
 using ZRWebAPiApp.Models;
 using Formatting = Newtonsoft.Json.Formatting;
 using RouteAttribute = System.Web.Http.RouteAttribute;
@@ -11,10 +9,10 @@ using RouteAttribute = System.Web.Http.RouteAttribute;
 namespace ZRWebAPiApp.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
+    //[ApiController]
     public class PostController : ControllerBase
     {
-        private readonly string _baseUrl = "https://localhost:44396/api/post/allpost";
+        private readonly string _baseUrl = "http://localhost:1844/api/post/GetPosts";
 
         private static readonly List<Posts> Posts = new List<Posts>
         {
@@ -40,16 +38,16 @@ namespace ZRWebAPiApp.Controllers
             }
         };
 
-        [Route("allpost")]
+        [Microsoft.AspNetCore.Mvc.HttpGet("/api/[controller]/[action]")]
         public ActionResult<List<Posts>> GetPosts()
         {
             return Posts;
         }
 
-        //  Be noted :  please hit the postman url: https://localhost:44396/api/post/allpost/posts?tag=web&sortby=popularity&direction=desc   or https://localhost:44396/api/post/allpost/posts?tag=web
+        //  Please note :  hit the request using swagger
 
-
-        [Route("GetPosts")]
+        [Microsoft.AspNetCore.Mvc.HttpGet("/api/[controller]/[action]/{tags}")]
+        //[Route("getposts")]
         public string GetPosts(string tags, string? sortBy, string? direction)
         {
             // Validate required tags parameter
@@ -57,7 +55,6 @@ namespace ZRWebAPiApp.Controllers
             {
                 throw new HttpResponseException(HttpStatusCode.BadRequest);
             }
-            var postlist = GetPosts();
             // Build request URL
             var requestUrl = $"{_baseUrl}";
 
@@ -83,13 +80,13 @@ namespace ZRWebAPiApp.Controllers
                 }
 
                 var responseJson = response.Content.ReadAsStringAsync().Result;
-                var posts = JsonConvert.DeserializeObject<List<Posts>>(responseJson).ToList();
+                var postss = JsonConvert.DeserializeObject<List<Posts>>(responseJson).ToList();
 
                 var newRequestUrl = $"{_baseUrl}/posts?tag={tags}";
                 var filterrequestUrl = requestUrl.Replace(requestUrl, newRequestUrl);
 
                 // Remove duplicates
-                var distinctPosts = posts.Where(post => post.tags.Contains(tags)).Distinct().ToList();
+                var posts = postss.Where(post => post.tags.Contains(tags)).Distinct().ToList();
 
                 // Sort posts
                 if (!string.IsNullOrEmpty(sortBy))
@@ -97,22 +94,22 @@ namespace ZRWebAPiApp.Controllers
                     switch (sortBy.ToLower())
                     {
                         case "id":
-                            distinctPosts = direction.ToLower() == "desc" ? distinctPosts.OrderByDescending(p => p.id).ToList() : distinctPosts.OrderBy(p => p.id).ToList();
+                            posts = direction.ToLower() == "desc" ? posts.OrderByDescending(p => p.id).ToList() : posts.OrderBy(p => p.id).ToList();
                             break;
                         case "reads":
-                            distinctPosts = direction.ToLower() == "desc" ? distinctPosts.OrderByDescending(p => p.reads).ToList() : distinctPosts.OrderBy(p => p.reads).ToList();
+                            posts = direction.ToLower() == "desc" ? posts.OrderByDescending(p => p.reads).ToList() : posts.OrderBy(p => p.reads).ToList();
                             break;
                         case "likes":
-                            distinctPosts = direction.ToLower() == "desc" ? distinctPosts.OrderByDescending(p => p.likes).ToList() : distinctPosts.OrderBy(p => p.likes).ToList();
+                            posts = direction.ToLower() == "desc" ? posts.OrderByDescending(p => p.likes).ToList() : posts.OrderBy(p => p.likes).ToList();
                             break;
                         case "popularity":
-                            distinctPosts = direction.ToLower() == "desc" ? distinctPosts.OrderByDescending(p => p.popularity).ToList() : distinctPosts.OrderBy(p => p.popularity).ToList();
+                            posts = direction.ToLower() == "desc" ? posts.OrderByDescending(p => p.popularity).ToList() : posts.OrderBy(p => p.popularity).ToList();
                             break;
                         default:
                             throw new HttpResponseException(HttpStatusCode.BadRequest);
                     }
                 }
-                return JsonConvert.SerializeObject(distinctPosts, Formatting.Indented);
+                return JsonConvert.SerializeObject(posts, Formatting.Indented);
             }
         }
     }
